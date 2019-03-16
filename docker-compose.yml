@@ -1,0 +1,76 @@
+# https://github.com/buchdag/letsencrypt-nginx-proxy-companion-compose/blob/master/2-containers/compose-v3/labels/docker-compose.yaml
+
+version: '3'
+
+services:
+
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - conf:/etc/nginx/conf.d
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - dhparam:/etc/nginx/dhparam
+      - certs:/etc/nginx/certs:ro
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - "./nginx/nginx_directives:/etc/nginx/conf.d/414.conf"
+    labels:
+      - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy"
+    restart: always
+    networks:
+      - esploranet
+
+  letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    environment:
+      - "NGINX_PROXY_CONTAINER=nginx-proxy"
+    depends_on:
+      - nginx-proxy
+    volumes:
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - dhparam:/etc/nginx/dhparam:ro
+      - certs:/etc/nginx/certs
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: always
+    networks:
+      - esploranet
+
+# docker run -d -p 8080:80 -v /home/debian/data_bitcoin_mainnet:/data --rm esplora bash -c "/srv/explorer/run.sh bitcoin-mainnet explorer"
+  esplora:
+    image: esplora
+    command: bash -c "/srv/explorer/run.sh bitcoin-mainnet-bullbitcoin explorer verbose"
+    env_file:
+      - esplora.env
+    depends_on:
+      - letsencrypt
+    volumes:
+      - "/home/debian/data_bitcoin_mainnet:/data"
+    restart: always
+    networks:
+      - esploranet
+
+  tor:
+    image: tor
+    command: tor -f /home/tor/tor/torrc
+    depends_on:
+      - esplora
+    volumes:
+      - "./tor:/home/tor/tor"
+    restart: always
+    networks:
+      - esploranet
+
+volumes:
+  conf:
+  vhost:
+  html:
+  dhparam:
+  certs:
+
+networks:
+  esploranet:
+    external: true

@@ -1,0 +1,5 @@
+docker stack deploy -c docker-compose.yml esplora
+
+#docker run -d --expose 80 --network=esploranet --name esplora --env-file esplora.env \
+# -v /home/debian/data_bitcoin_mainnet:/data --rm esplora \
+# bash -c "/srv/explorer/run.sh bitcoin-mainnet-bullbitcoin explorer"
